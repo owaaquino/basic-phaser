@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Setup</title>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser-arcade-physics.min.js"></script>
+    <style>
+      body {
+        margin: 0;
+        background: #222;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+
+      h1 {
+        color: white;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Learning Phaser</h1>
+    <div id="game-container"></div>
+    <script>
+      class Menu extends Phaser.Scene {
+        constructor() {
+          super('MenuScene');
+        }
+
+        preload() {}
+        create() {
+          console.log('Displaying Menu Scene');
+          this.scene.start('GameScene');
+        }
+        update() {}
+      }
+
+      class Game extends Phaser.Scene {
+        constructor() {
+          super('GameScene');
+        }
+
+        preload() {}
+        create() {
+          console.log('Displaying Game Scene');
+          this.scene.start('GameOverScene');
+        }
+        update() {}
+      }
+
+      class GameOver extends Phaser.Scene {
+        constructor() {
+          super('GameOverScene');
+        }
+
+        preload() {}
+        create() {
+          console.log('Displaying Game Over Scene');
+        }
+        update() {}
+      }
+
+      const config = {
+        type: Phaser.AUTO, // Uses WebGL if available, otherwise Canvas
+        parent: 'game-container', // displays the game in this div
+        width: 300,
+        height: 300,
+        physics: {
+          default: 'arcade',
+          arcade: {
+            gravity: { y: 300 }, // Objects will fall down
+            debug: false,
+          },
+        },
+        scale: {
+          mode: Phaser.Scale.FIT,
+          autoCenter: Phaser.Scale.CENTER_BOTH,
+        },
+        scene: [Menu, Game, GameOver],
+      };
+
+      const game = new Phaser.Game(config);
+    </script>
+  </body>
+</html>
