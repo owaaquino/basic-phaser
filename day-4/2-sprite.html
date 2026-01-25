@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Setup</title>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser-arcade-physics.min.js"></script>
+    <style>
+      body {
+        margin: 0;
+        background: #222;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+
+      h1 {
+        color: white;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Learning Phaser</h1>
+    <div id="game-container"></div>
+    <script>
+      const config = {
+        type: Phaser.AUTO, // Uses WebGL if available, otherwise Canvas
+        parent: 'game-container', // displays the game in this div
+        width: 800,
+        height: 600,
+        physics: {
+          default: 'arcade',
+          arcade: {
+            gravity: { y: 300 }, // Objects will fall down
+            debug: false,
+          },
+        },
+        scale: {
+          mode: Phaser.Scale.FIT,
+          autoCenter: Phaser.Scale.CENTER_BOTH,
+        },
+        scene: {
+          preload: preload,
+          create: create,
+          update: update,
+        },
+      };
+
+      const game = new Phaser.Game(config);
+
+      // Loading Pillar
+      function preload() {
+        this.load.spritesheet('dude', 'assets/astronaut.png', {
+          frameWidth: 24,
+          frameHeight: 24,
+        });
+      }
+
+      function create() {
+        // creating a animation instance for dude sprite left-walk
+        this.anims.create({
+          key: 'left-walk',
+          frames: this.anims.generateFrameNumbers('dude', { start: 0, end: 3 }),
+          frameRate: 5,
+          repeat: -1,
+        });
+
+        this.player = this.add.sprite(400, 300, 'dude');
+        this.player.play('left-walk'); // playing the dude animation
+      }
+
+      function update() {}
+    </script>
+  </body>
+</html>
