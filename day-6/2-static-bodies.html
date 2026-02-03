@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Setup</title>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser-arcade-physics.min.js"></script>
+    <style>
+      body {
+        margin: 0;
+        background: #222;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+
+      h1 {
+        color: white;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Learning Phaser</h1>
+    <div id="game-container"></div>
+    <script>
+      const config = {
+        type: Phaser.AUTO, // Uses WebGL if available, otherwise Canvas
+        parent: 'game-container', // displays the game in this div
+        width: 800,
+        height: 600,
+        physics: {
+          default: 'arcade',
+          arcade: {
+            gravity: { y: 300 }, // Objects will fall down
+            debug: false,
+          },
+        },
+        scale: {
+          mode: Phaser.Scale.FIT,
+          autoCenter: Phaser.Scale.CENTER_BOTH,
+        },
+        scene: {
+          preload: preload,
+          create: create,
+          update: update,
+        },
+      };
+
+      const game = new Phaser.Game(config);
+
+      function preload() {
+        this.load.spritesheet('astronaut', 'assets/astronaut.png', {
+          frameWidth: 24,
+          frameHeight: 24,
+        });
+        this.load.image('star', 'assets/star.png');
+        this.load.image('platform', 'assets/platform.png');
+      }
+
+      function create() {
+        this.player = this.physics.add.image(400, 300, 'astronaut');
+
+        this.platforms = this.physics.add.staticGroup();
+
+        this.platforms.create(400, 568, 'platform').setScale(2).refreshBody();
+
+        this.platforms.create(600, 400, 'platform');
+        this.platforms.create(750, 220, 'platform');
+        this.platforms.create(50, 250, 'platform');
+
+        // player collides with platforms
+        this.physics.add.collider(this.player, this.platforms);
+
+        this.cursor = this.input.keyboard.createCursorKeys();
+        this.fireBullet = fireBullet;
+      }
+
+      function update() {
+        if (this.cursor.left.isDown) {
+          this.player.setVelocityX(-160);
+        } else if (this.cursor.right.isDown) {
+          this.player.setVelocityX(160);
+        } else {
+          this.player.setVelocityX(0);
+        }
+
+        if (Phaser.Input.Keyboard.JustDown(this.cursor.space)) {
+          this.fireBullet();
+        }
+      }
+
+      function fireBullet() {
+        const bullet = this.bullets.create(
+          this.player.x,
+          this.player.y,
+          'star',
+        );
+        bullet.body.setAllowGravity(false);
+        bullet.setVelocityX(500);
+
+        bullet.setCollideWorldBounds(true);
+        bullet.body.onWorldBounds = true; // Enable the event
+
+        // Destroy the bullet when it hits the edge of the world
+        bullet.body.world.on('worldbounds', (body) => {
+          if (body.gameObject === bullet) {
+            console.log('Bullet destroyed');
+            bullet.destroy();
+          }
+        });
+      }
+    </script>
+  </body>
+</html>
