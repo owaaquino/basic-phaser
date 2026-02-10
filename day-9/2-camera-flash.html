@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Setup</title>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser-arcade-physics.min.js"></script>
+    <style>
+      body {
+        margin: 0;
+        background: #222;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+
+      h1 {
+        color: white;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Learning Phaser</h1>
+    <div id="game-container"></div>
+    <script>
+      class GameScene extends Phaser.Scene {
+        constructor() {
+          super({ key: 'GameScene' });
+        }
+
+        preload() {
+          this.load.spritesheet('astronaut-idle', 'assets/astronaut-idle.png', {
+            frameWidth: 24,
+            frameHeight: 24,
+          });
+
+          this.load.spritesheet('astronaut-run', 'assets/astronaut-run.png', {
+            frameWidth: 24,
+            frameHeight: 24,
+          });
+
+          this.load.spritesheet('astronaut-jump', 'assets/astronaut-jump.png', {
+            frameWidth: 24,
+            frameHeight: 24,
+          });
+
+          this.load.image('platform', 'assets/platform.png');
+          this.load.image('star', 'assets/star.png');
+        }
+
+        create() {
+          // setting up world bound
+          this.physics.world.setBounds(0, 0, 800, 600);
+
+          this.player = this.physics.add.sprite(200, 300, 'astronaut-idle');
+          this.star = this.physics.add.image(800, 520, 'star');
+
+          this.scoreText = this.add.text(10, 10, 'Score: 0');
+          this.scoreText.setScrollFactor(0);
+
+          this.cameras.main.setFollowOffset(-100, 0);
+          this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
+
+          this.minimap = this.cameras
+            .add(600, 400, 200, 200)
+            .setZoom(0.2)
+            .setName('mini');
+          this.minimap.startFollow(this.player);
+
+          this.minimap.ignore(this.scoreText);
+
+          this.player.body.setSize(5, 5);
+          this.player.body.setOffset(10, 15);
+          this.player.setBounce(0.5);
+
+          this.platforms = this.physics.add.staticGroup();
+
+          this.platforms.create(400, 568, 'platform').setScale(2).refreshBody();
+
+          this.anims.create({
+            key: 'walk',
+            frames: this.anims.generateFrameNumbers('astronaut-run', {
+              start: 0,
+              end: 3,
+            }),
+            frameRate: 10,
+            repeat: -1,
+          });
+
+          this.anims.create({
+            key: 'idle',
+            frames: this.anims.generateFrameNumbers('astronaut-idle', {
+              start: 0,
+              end: 3,
+            }),
+            frameRate: 10,
+            repeat: -1,
+          });
+
+          this.anims.create({
+            key: 'jump',
+            frames: this.anims.generateFrameNumbers('astronaut-jump', {
+              start: 0,
+              end: 3,
+            }),
+            frameRate: 10,
+            repeat: -1,
+          });
+
+          this.tweens.add({
+            targets: this.star,
+            y: 500,
+            duration: 1000,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut',
+          });
+
+          this.cursor = this.input.keyboard.createCursorKeys();
+
+          this.physics.add.collider(this.player, this.platforms);
+          this.physics.add.collider(this.star, this.platforms);
+
+          this.physics.add.overlap(
+            this.player,
+            this.star,
+            () => {
+              console.log('Star collected!');
+              this.discoverTreasure(this.player, this.star);
+              this.star.destroy();
+              this.cameras.main.shake(200, 0.02);
+            },
+            null,
+            this,
+          );
+
+          // player collide with world bound
+          this.player.setCollideWorldBounds(true);
+
+          // player can trigger world bound event
+          this.player.body.onWorldBounds = true;
+
+          // console log when player hit the world bound
+          this.physics.world.on('worldbounds', (body) => {
+            console.log('Player hit the world bound!');
+          });
+
+          // this.cameras.main.setBounds(0, 0, 300, 200);
+          this.cameras.main.setDeadzone(150, 150);
+        }
+
+        update() {
+          // 1. Handle Horizontal Movement
+          if (this.cursor.left.isDown) {
+            this.player.setVelocityX(-160);
+            this.player.flipX = true;
+          } else if (this.cursor.right.isDown) {
+            this.player.setVelocityX(160);
+            this.player.flipX = false;
+          } else {
+            this.player.setVelocityX(0);
+          }
+
+          if (this.cursor.up.isDown && this.player.body.touching.down) {
+            this.player.setVelocityY(-150);
+          }
+
+          if (!this.player.body.touching.down) {
+            this.player.anims.play('jump', true);
+          } else if (this.player.body.velocity.x !== 0) {
+            this.player.anims.play('walk', true);
+          } else {
+            this.player.anims.play('idle', true);
+          }
+        }
+
+        discoverTreasure(player, star) {
+          // 1. Stop following the player
+          this.cameras.main.stopFollow();
+
+          // 2. Pan to the chest and Zoom in
+          // x, y, duration, ease, forceIt, callback
+          this.cameras.main.pan(star.x, star.y, 1000, 'Power2');
+          this.cameras.main.zoomTo(2, 1000); // Zoom to 2x size
+
+          // 3. After 2 seconds, pan back to player
+          this.time.delayedCall(2000, () => {
+            this.cameras.main.pan(player.x, player.y, 1000);
+            this.cameras.main.zoomTo(1, 1000);
+            this.cameras.main.startFollow(player);
+          });
+        }
+      }
+
+      const config = {
+        type: Phaser.AUTO, // Uses WebGL if available, otherwise Canvas
+        parent: 'game-container', // displays the game in this div
+        width: 800,
+        height: 600,
+        physics: {
+          default: 'arcade',
+          arcade: {
+            gravity: { y: 300 }, // Objects will fall down
+            debug: false,
+          },
+        },
+        scale: {
+          mode: Phaser.Scale.FIT,
+          autoCenter: Phaser.Scale.CENTER_BOTH,
+        },
+        scene: GameScene,
+      };
+
+      const game = new Phaser.Game(config);
+    </script>
+  </body>
+</html>
