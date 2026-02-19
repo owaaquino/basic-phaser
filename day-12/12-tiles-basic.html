@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Setup</title>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser-arcade-physics.min.js"></script>
+    <style>
+      body {
+        margin: 0;
+        background: #222;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+
+      h1 {
+        color: white;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Learning Phaser</h1>
+    <div id="game-container"></div>
+    <script>
+      class GameScene extends Phaser.Scene {
+        constructor() {
+          super({ key: 'GameScene' });
+        }
+
+        preload() {
+          this.load.image('platform', 'assets/platform.png');
+          this.load.tilemapTiledJSON('level1', 'assets/tiles/level1.json');
+
+          this.load.spritesheet('astronaut-idle', 'assets/astronaut-idle.png', {
+            frameWidth: 24,
+            frameHeight: 24,
+          });
+
+          this.load.spritesheet('astronaut-run', 'assets/astronaut-run.png', {
+            frameWidth: 24,
+            frameHeight: 24,
+          });
+
+          this.load.spritesheet('astronaut-jump', 'assets/astronaut-jump.png', {
+            frameWidth: 24,
+            frameHeight: 24,
+          });
+        }
+
+        create() {
+          const map = this.make.tilemap({ key: 'level1' });
+          const tileset = map.addTilesetImage('platform', 'platform');
+
+          this.worldLayer = map.createLayer('Tile Layer 1', tileset, 0, 0);
+
+          this.player = this.physics.add.sprite(150, 500, 'astronaut-idle');
+          this.player.setCollideWorldBounds(true);
+
+          this.anims.create({
+            key: 'walk',
+            frames: this.anims.generateFrameNumbers('astronaut-run', {
+              start: 0,
+              end: 3,
+            }),
+            frameRate: 10,
+            repeat: -1,
+          });
+
+          this.anims.create({
+            key: 'idle',
+            frames: this.anims.generateFrameNumbers('astronaut-idle', {
+              start: 0,
+              end: 3,
+            }),
+            frameRate: 10,
+            repeat: -1,
+          });
+
+          this.anims.create({
+            key: 'jump',
+            frames: this.anims.generateFrameNumbers('astronaut-jump', {
+              start: 0,
+              end: 3,
+            }),
+            frameRate: 10,
+            repeat: -1,
+          });
+
+          this.cursor = this.input.keyboard.createCursorKeys();
+
+          // Make all non-empty tiles collide
+          this.worldLayer.setCollisionByExclusion([-1]);
+
+          // Ensure physics world bounds match the map (optional but recommended)
+          this.physics.world.bounds.width = map.widthInPixels;
+          this.physics.world.bounds.height = map.heightInPixels;
+          this.player.setCollideWorldBounds(true);
+          this.physics.add.collider(this.player, this.worldLayer);
+        }
+
+        update() {
+          if (this.cursor.left.isDown) {
+            this.player.setVelocityX(-160);
+            this.player.flipX = true;
+          } else if (this.cursor.right.isDown) {
+            this.player.setVelocityX(160);
+            this.player.flipX = false;
+          } else {
+            this.player.setVelocityX(0);
+          }
+
+          if (this.cursor.up.isDown && this.player.body.blocked.down) {
+            this.player.setVelocityY(-200); // Increased slightly so you can see the jump better
+          }
+
+          if (!this.player.body.blocked.down) {
+            this.player.anims.play('jump', true);
+          } else if (this.player.body.velocity.x !== 0) {
+            this.player.anims.play('walk', true);
+          } else {
+            this.player.anims.play('idle', true);
+          }
+        }
+      }
+
+      const config = {
+        type: Phaser.AUTO, // Uses WebGL if available, otherwise Canvas
+        parent: 'game-container', // displays the game in this div
+        width: 800,
+        height: 600,
+        physics: {
+          default: 'arcade',
+          arcade: {
+            gravity: { y: 300 }, // Objects will fall down
+            debug: true,
+          },
+        },
+        scale: {
+          mode: Phaser.Scale.FIT,
+          autoCenter: Phaser.Scale.CENTER_BOTH,
+        },
+        scene: GameScene,
+      };
+
+      const game = new Phaser.Game(config);
+    </script>
+  </body>
+</html>
