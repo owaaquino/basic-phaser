@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Setup</title>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser-arcade-physics.min.js"></script>
+    <style>
+      body {
+        margin: 0;
+        background: #222;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+
+      h1 {
+        color: white;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Learning Phaser</h1>
+    <div id="game-container"></div>
+    <script>
+      class GameScene extends Phaser.Scene {
+        constructor() {
+          super({ key: 'GameScene' });
+        }
+
+        preload() {
+          this.load.image('tileimage', 'assets/space-runner-tiles.png');
+          this.load.tilemapTiledJSON('tilelayers', 'assets/tiles/level2.json');
+
+          this.load.spritesheet('astronaut-idle', 'assets/astronaut-idle.png', {
+            frameWidth: 24,
+            frameHeight: 24,
+          });
+
+          this.load.spritesheet('enemy-idle', 'assets/alien-idle.png', {
+            frameWidth: 24,
+            frameHeight: 24,
+          });
+
+          this.load.spritesheet('astronaut-run', 'assets/astronaut-run.png', {
+            frameWidth: 24,
+            frameHeight: 24,
+          });
+
+          this.load.spritesheet('astronaut-jump', 'assets/astronaut-jump.png', {
+            frameWidth: 24,
+            frameHeight: 24,
+          });
+        }
+
+        create() {
+          const map = this.make.tilemap({ key: 'tilelayers' });
+
+          const tileSet = map.addTilesetImage(
+            'runner-asset-sheet-with-transparency',
+            'tileimage',
+          );
+
+          this.backgroundLayer = map.createLayer('background', tileSet, 0, 0);
+          this.backgroundLayer2 = map.createLayer('background2', tileSet, 0, 0);
+
+          this.platforms = map.createLayer('platforms', tileSet, 0, 0);
+
+          this.platforms.setCollisionByProperty({ collides: true });
+
+          this.player = this.physics.add.sprite(150, 500, 'astronaut-idle');
+          this.player.setCollideWorldBounds(true);
+
+          this.physics.add.collider(this.player, this.platforms);
+        }
+
+        update() {}
+      }
+
+      const config = {
+        type: Phaser.AUTO, // Uses WebGL if available, otherwise Canvas
+        parent: 'game-container', // displays the game in this div
+        width: 800,
+        height: 600,
+        physics: {
+          default: 'arcade',
+          arcade: {
+            gravity: { y: 300 }, // Objects will fall down
+            debug: true,
+          },
+        },
+        scale: {
+          mode: Phaser.Scale.FIT,
+          autoCenter: Phaser.Scale.CENTER_BOTH,
+        },
+        scene: GameScene,
+      };
+
+      const game = new Phaser.Game(config);
+    </script>
+  </body>
+</html>
