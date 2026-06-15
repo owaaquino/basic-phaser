@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Setup</title>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser-arcade-physics.min.js"></script>
+    <style>
+      body {
+        margin: 0;
+        background: #fff;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+
+      h1 {
+        color: white;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Learning Phaser</h1>
+    <div id="game-container"></div>
+    <script>
+      class GameScene extends Phaser.Scene {
+        constructor() {
+          super({ key: 'GameScene' });
+        }
+
+        preload() {
+          this.load.atlas('player', 'assets/player.png', 'assets/player.json');
+          this.load.atlas(
+            'enemy',
+            'assets/barbarian.png',
+            'assets/barbarian.json',
+          );
+        }
+
+        create() {
+          // use a sprite (not an Image) so animations are available
+          this.player = this.physics.add.sprite(50, 100, 'player');
+          this.player.setSize(8, 8).setOffset(4, 8);
+          this.player.setCollideWorldBounds(true);
+
+          this.enemy = this.physics.add.sprite(200, 100, 'enemy');
+          this.enemy.setSize(8, 8).setOffset(6, 14);
+          this.enemy.setCollideWorldBounds(true);
+
+          this.anims.create({
+            key: 'walk',
+            frames: this.anims.generateFrameNames('player', {
+              prefix: 'basic_run_', // The filename part before the number
+              suffix: '.png', // Set to '.png' if TexturePacker kept extensions
+              start: 1, // Starting frame number
+              end: 8, // Ending frame number
+              zeroPad: 2, // Set to 2 if names look like 'run_01', 'run_02'
+            }),
+            frameRate: 8,
+            repeat: -1,
+          });
+
+          this.anims.create({
+            key: 'idle',
+            frames: this.anims.generateFrameNames('player', {
+              prefix: 'basic_idle_',
+              suffix: '.png',
+              start: 1,
+              end: 4,
+              zeroPad: 2,
+            }),
+            frameRate: 5,
+            repeat: -1,
+          });
+
+          this.anims.create({
+            key: 'jump',
+            frames: this.anims.generateFrameNames('player', {
+              prefix: 'basic_jump_',
+              suffix: '.png',
+              start: 1,
+              end: 9,
+              zeroPad: 2,
+            }),
+            frameRate: 8,
+            repeat: -1,
+          });
+
+          this.anims.create({
+            key: 'sword_attack',
+            frames: this.anims.generateFrameNames('player', {
+              prefix: 'basic_sword_attack_',
+              suffix: '.png',
+              start: 1,
+              end: 10,
+              zeroPad: 2,
+            }),
+            frameRate: 10,
+            repeat: 0,
+          });
+
+          this.anims.create({
+            key: 'barbarian_walk',
+            frames: this.anims.generateFrameNames('enemy', {
+              prefix: 'barbarian_run_',
+              suffix: '.png',
+              start: 1,
+              end: 4,
+              zeroPad: 2,
+            }),
+            frameRate: 8,
+            repeat: -1,
+          });
+
+          this.anims.create({
+            key: 'barbarian_idle',
+            frames: this.anims.generateFrameNames('enemy', {
+              prefix: 'barbarian_idle_',
+              suffix: '.png',
+              start: 1,
+              end: 4,
+              zeroPad: 2,
+            }),
+            frameRate: 5,
+            repeat: -1,
+          });
+
+          this.anims.create({
+            key: 'barbarian_attack',
+            frames: this.anims.generateFrameNames('enemy', {
+              prefix: 'barbarian_attack_',
+              suffix: '.png',
+              start: 1,
+              end: 13,
+              zeroPad: 2,
+            }),
+            frameRate: 10,
+            repeat: 0,
+          });
+
+          this.cursor = this.input.keyboard.createCursorKeys();
+
+          // Enemy AI Config
+          this.enemy.isAttacking = false;
+          this.enemy.attackRange = 20;
+          this.enemy.detectionRange = 50;
+        }
+
+        update() {
+          // 1. Handle Horizontal Movement
+          if (this.cursor.left.isDown) {
+            this.player.setVelocityX(-100);
+            this.player.flipX = true;
+          } else if (this.cursor.right.isDown) {
+            this.player.setVelocityX(100);
+            this.player.flipX = false;
+          } else {
+            this.player.setVelocityX(0);
+          }
+
+          // console.log(this.player.body.touching);
+          // 2. Handle Jump Input
+          if (this.cursor.up.isDown && this.player.body.blocked.down) {
+            this.player.setVelocityY(-100);
+          }
+
+          if (Phaser.Input.Keyboard.JustDown(this.cursor.space)) {
+            this.player.anims.play('sword_attack', true);
+            console.log('Attack!');
+          }
+
+          if (
+            this.player.anims.currentAnim &&
+            this.player.anims.currentAnim.key === 'sword_attack' &&
+            this.player.anims.isPlaying
+          ) {
+            return;
+          }
+
+          // 3. ANIMATION PRIORITY PILLAR
+          // Check if in the air first!
+          if (!this.player.body.blocked.down) {
+            this.player.anims.play('jump', true);
+          } else if (this.player.body.velocity.x !== 0) {
+            this.player.anims.play('walk', true);
+          } else {
+            this.player.anims.play('idle', true);
+          }
+
+          // Enemy
+          if (this.enemy.isAttacking) {
+            return;
+          }
+
+          const distance = Phaser.Math.Distance.BetweenPoints(
+            this.player,
+            this.enemy,
+          );
+
+          if (distance < this.enemy.attackRange) {
+            this.triggerEnemyAttack();
+          } else if (distance <= this.enemy.detectionRange) {
+            this.physics.moveToObject(this.enemy, this.player);
+
+            if (this.enemy.body.velocity.x > 0) {
+              this.enemy.setFlipX(false);
+            } else if (this.enemy.body.velocity < 0) {
+              this.enemy.setFilpX(true);
+            }
+            this.enemy.anims.play('barbarian_walk', true);
+          } else {
+            this.enemy.body.setVelocityX(0);
+            this.enemy.anims.play('barbarian_idle', true);
+          }
+        }
+        triggerEnemyAttack = () => {
+          this.enemy.isAttacking = true;
+          this.enemy.body.setVelocityX(0);
+          if (this.player.x < this.enemy.x) {
+            this.enemy.setFlipX(true);
+          } else {
+            this.enemy.setFlipX(false);
+          }
+          this.enemy.anims.play('barbarian_attack', true);
+          this.enemy.once('animationcomplete', () => {
+            this.enemy.isAttacking = false;
+          });
+        };
+      }
+
+      const config = {
+        type: Phaser.AUTO, // Uses WebGL if available, otherwise Canvas
+        parent: 'game-container', // displays the game in this div
+        width: 256,
+        height: 144,
+        pixelArt: true,
+        physics: {
+          default: 'arcade',
+          arcade: {
+            gravity: { y: 300 }, // Objects will fall down
+            debug: false,
+            fps: 60,
+          },
+        },
+        scale: {
+          mode: Phaser.Scale.FIT,
+          autoCenter: Phaser.Scale.CENTER_BOTH,
+        },
+        scene: GameScene,
+      };
+
+      const game = new Phaser.Game(config);
+    </script>
+  </body>
+</html>
